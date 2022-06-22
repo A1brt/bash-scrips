@@ -19,15 +19,16 @@ if [[ $1 == "-d" ]]; then
 fi
 
 # compressing a tar archive if option -d was not selected
+# imput format bash UAE.sh -gzip <name>.tar <path-to-tar>
 case $1 in
        "-gzip")
-          tar -czvf "${2}.gz" $3
+          tar -czvf "${2}.tar.gz" $3
           ;;
        "-bzip2")    
-          tar -cjvf "${2}.bz2" $3
+          tar -cjvf "${2}.tar.bz2" $3
           ;;
        "-xz")    
-          tar -cJvf "${2}.xz" $3
+          tar -cJvf "${2}.tar.xz" $3
           ;; 
 esac
 exit 0

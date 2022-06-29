@@ -40,8 +40,7 @@ function check(){
 }
 
 function handle_args(){
-  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d:l -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection-details:local-directory -- "$@")
-  eval set -- "$PARSED_ARGUMENTS"
+  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d:l: -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection-details:local-directory: "$@")
   while :; do
     case $1 in 
      -h|--help)
@@ -74,12 +73,18 @@ function handle_args(){
         ;;
      -l|--local-directory)
         DIRECTORY=$2
+        argument_log "local directory"
         shift 2
         ;;
-     --)
+     -?*)
+        echo "Invalid option $1"
+        exit 1
+      ;;
+     *)
         break;;
     esac
   done
+  echo
 }
 
 function restore(){
@@ -93,7 +98,7 @@ function backup(){
   echo "*******************BACKUP SELECTED*******************"
   echo
   backup_check
-    echo "backup process should have started here"
+  echo "backup process should have started here"
 }
 
 function restore_check(){

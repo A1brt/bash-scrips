@@ -35,7 +35,7 @@ function select_action(){
 # Check that mysql is installed 
 function check(){
   if ! which mysql; then
-    echo "Please install MySQL before running this command"
+    echo "ERROR: MySQL missing. Please install MySQL before running this command"
     exit 1
   fi
 }
@@ -100,14 +100,15 @@ function backup(){
   echo
   backup_check
   echo "backup process should have started here"
-  #xtrabackup --backup --target-dir=$
+  configure_backup
+  #xtrabackup --backup --target-dir="$DIRECTORY"
 }
 
 function restore_check(){
   echo "restore checks running"
 
-  if ! which rsync >> /dev/null; then
-    echo "Percona backup tool missing. Please install rsync before running the script"
+  if ! which rsync >> /dev/null 2>&1; then
+    echo "ERROR: Percona backup tool missing. Please install rsync before running the script"
     exit 1
   fi
 
@@ -118,12 +119,21 @@ function restore_check(){
 function backup_check(){
   echo "backup checks running"
 
-  if ! which xtrabackup >> /dev/null; then
-    echo "Percona backup tool missing. Please install xtrabackup before running the script"
+  if ! which xtrabackup >> /dev/null 2>&1; then
+    echo "ERROR: Percona backup tool missing. Please install xtrabackup before running the script"
     exit 1
   fi
 
   echo "backup checks over"
+}
+
+# configure necessary files and directories for a backup
+function configure_backup(){
+  if [ ! -d /data/backups/mysql/ ]; then
+    echo "creating a backup directory at /data/backups/mysql/"
+    mkdir -p /data/backups/mysql/
+  fi
+
 }
 
 function argument_log(){

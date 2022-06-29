@@ -41,7 +41,7 @@ function check(){
 }
 
 function handle_args(){
-  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d:l: -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection-details:local-directory: "$@")
+  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d:t: -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection-details:target-dir: "$@")
   while :; do
     case $1 in 
      -h|--help)
@@ -72,9 +72,9 @@ function handle_args(){
         argument_log "s3 bucket connection details"
         shift 2
         ;;
-     -l|--local-directory)
+     -t|--target-dir)
         DIRECTORY=$2
-        argument_log "local directory"
+        argument_log "target directory"
         shift 2
         ;;
      -?*)
@@ -100,6 +100,7 @@ function backup(){
   echo
   backup_check
   echo "backup process should have started here"
+  #xtrabackup --backup --target-dir=$
 }
 
 function restore_check(){
@@ -143,6 +144,7 @@ function help(){
   echo "  -p|--mysql-password                       specify the password of the user"
   echo "  -b|--s3bucket                             specify the address of s3 bucket"
   echo "  -d|--s3bucket-connection_details          specify the path to details file for your s3 bucket"
+  echo "  -t|--target-dir                           specify the taget directory to stroe the backup file"
   echo
 }
 ###################################################################################################

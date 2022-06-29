@@ -27,6 +27,7 @@ function select_action(){
           exit 2
         fi
         echo "Ivalid option $REPLY. Number of tries left: $COUNTER"
+        ;;
     esac
   done
 }

@@ -1,8 +1,8 @@
 #!/bin/bash:set number
 
 function main(){
-# check
-  handle_args $@
+  #check
+  handle_args "$@"
   select_action
   exit 0
 }
@@ -27,15 +27,14 @@ function select_action(){
 
 # Check that mysql is installed 
 function check(){
-  which mysql
-  if [ $? ne 0 ]; then
+  if ! mysql -v; then
     echo "Please install MySQL before running this command"
     exit 1
   fi
 }
 
 function handle_args(){
-  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u: -l help,mysql-server:,mysql-user: -- "$@")
+  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d: -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection_details: -- "$@")
   eval set -- "$PARSED_ARGUMENTS"
   while :; do
     case $1 in 
@@ -65,7 +64,6 @@ function handle_args(){
         DETAILS=$2
         shift 2
         ;;
-
      --)
         break;;
     esac
@@ -96,11 +94,17 @@ function log(){
 ###################################################################################################
 # Help
 function help(){
+  echo
   echo "Usage: percona_store [OPTION]... [PARAMETER]"
-  echo "percona_store is a script for making backups and restoring percona databases"
+  echo "percona_store is a script for making backups to AWS s3 bucket and restoring percona databases"
   echo "OPTIONS"
-  echo "   -h|--help"
-  echo "       display a manual for thi script"
+  echo "  -h|--help                                 display this help and exit"
+  echo "  -s|--mysql-server                         specify the URL of mysql server"
+  echo "  -u|--mysql-user                           specify the user of mysql server"
+  echo "  -p|--mysql-password                       specify the password of the user"
+  echo "  -b|--s3bucket                             specify the address of s3 bucket"
+  echo "  -d|--s3bucket-connection_details          specify the path to details file for your s3 bucket"
+  echo
 }
 ###################################################################################################
-main $@
+main "$@"

@@ -8,6 +8,7 @@ function main(){
 }
 
 function select_action(){
+  local COUNTER=4
   select mode in RESTORE BACKUP
   do 
     case $mode in
@@ -20,21 +21,26 @@ function select_action(){
         break
         ;;
       *)
-        echo "Ivalid option $REPLY"
+        COUNTER=$((COUNTER-1))
+        if [ $COUNTER == 0 ]; then
+          echo "Ivalid option $REPLY. Command execution aborted"
+          exit 2
+        fi
+        echo "Ivalid option $REPLY. Number of tries left: $COUNTER"
     esac
   done
 }
 
 # Check that mysql is installed 
 function check(){
-  if ! mysql -v; then
+  if ! which mysql; then
     echo "Please install MySQL before running this command"
     exit 1
   fi
 }
 
 function handle_args(){
-  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d: -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection_details: -- "$@")
+  PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d:l -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection-details:local-directory -- "$@")
   eval set -- "$PARSED_ARGUMENTS"
   while :; do
     case $1 in 
@@ -44,12 +50,12 @@ function handle_args(){
         ;;
      -s|--mysql-server)        
         SERVER=$2        
-        log "server"
+        argument_log "server"
         shift 2
         ;;
      -u|--mysql-user)
         USER=$2
-        log "user"
+        argument_log "user"
         shift 2
         ;;
      -p|--mysql-password)
@@ -58,10 +64,16 @@ function handle_args(){
         ;;
      -b|--s3bucket)
         BUCKET=$2
+        argument_log "s3 bucket"
         shift 2
         ;;
-     -d|--s3bucket-connection_details)
+     -d|--s3bucket-connection-details)
         DETAILS=$2
+        argument_log "s3 bucket connection details"
+        shift 2
+        ;;
+     -l|--local-directory)
+        DIRECTORY=$2
         shift 2
         ;;
      --)
@@ -71,23 +83,44 @@ function handle_args(){
 }
 
 function restore(){
+  echo "*******************RESTORE SELECTED*******************"
+  echo
   restore_check
+  echo "restore process should have started here"
 }
 
 function backup(){
+  echo "*******************BACKUP SELECTED*******************"
+  echo
   backup_check
+    echo "backup process should have started here"
 }
 
 function restore_check(){
-  echo "restore checks"
+  echo "restore checks running"
+
+  if ! which rsync >> /dev/null; then
+    echo "Percona backup tool missing. Please install rsync before running the script"
+    exit 1
+  fi
+
+  echo "restore checks over"
 }
 
+# check that all n
 function backup_check(){
-  echo "backup checks"
+  echo "backup checks running"
+
+  if ! which xtrabackup >> /dev/null; then
+    echo "Percona backup tool missing. Please install xtrabackup before running the script"
+    exit 1
+  fi
+
+  echo "backup checks over"
 }
 
-function log(){
-  echo "LOG: SQL $1 specifed"
+function argument_log(){
+  echo "LOG: SQL $* specifed"
 }
 
 

@@ -9,6 +9,7 @@ function main(){
   exit 0
 }
 
+#select to either backup or restore
 function select_action(){
   local COUNTER=4
   select mode in RESTORE BACKUP
@@ -42,6 +43,7 @@ function check(){
   fi
 }
 
+#handle the options passed to the script and their arguments
 function handle_args(){
   PARSED_ARGUMENTS=$(getopt -a -n percona_store -o hs:u:p:b:d:t: -l help,mysql-server:,mysql-user:,mysql-password:,s3bucket:,s3bucket-connection-details:target-dir: "$@")
   while :; do
@@ -95,6 +97,9 @@ function restore(){
   echo
   restore_check
   echo "restore process should have started here"
+  #systemctl stop mysql
+  #innobackupex --copy-back "$DIRECTORY"
+
 }
 
 function backup(){
@@ -103,9 +108,10 @@ function backup(){
   backup_check
   echo "backup process should have started here"
   configure_backup
-  #innobackupex --user="$USER"  --password="$PASSWD" --no-timestamp "$DIRECTORY"
+  #innobackupex --user="$USER"  --password="$PASSWD"  "$DIRECTORY"
 }
 
+# check that everything necessary to restore is ready
 function restore_check(){
   echo "restore checks running"
 
@@ -117,12 +123,22 @@ function restore_check(){
   echo "restore checks over"
 }
 
-# check that all n
+# check that everything necessary to backup is ready
 function backup_check(){
   echo "backup checks running"
 
-  if ! which innobackupex >> /dev/null 2>&1; then
-    echo "ERROR: Percona backup tool missing. Please install innobackupex before running the script"
+  if ! which xtrabackup >> /dev/null 2>&1; then
+    echo "ERROR: Percona backup tool missing. Please install xtrabackup before running the script"
+    exit 1
+  fi
+
+  if [ -z "$USER" ]; then
+    echo "ERROR: user not passed to the script"
+    exit 1
+  fi
+
+  if [ -z "$PASSWD" ]; then
+    echo "ERROR: password not passed to the script"
     exit 1
   fi
 
@@ -134,14 +150,6 @@ function configure_backup(){
   if [ ! -d "$DIRECTORY"/ ]; then
     echo "creating a backup directory at $DIRECTORY"
     mkdir -p "$DIRECTORY"
-  fi
-  if [ -z "$USER" ]; then
-    echo "ERROR: user not passed to the script"
-    exit 1
-  fi
-  if [ -z "$PASSWD" ]; then
-    echo "ERROR: password not passed to the script"
-    exit 1
   fi
 }
 

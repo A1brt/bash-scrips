@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DIRECTORY="/data/backups/mysql/"
+
 function main(){
   #check
   handle_args "$@"
@@ -101,7 +103,7 @@ function backup(){
   backup_check
   echo "backup process should have started here"
   configure_backup
-  #xtrabackup --backup --target-dir="$DIRECTORY"
+  #innobackupex --user="$USER"  --password="$PASSWD" --no-timestamp "$DIRECTORY"
 }
 
 function restore_check(){
@@ -119,8 +121,8 @@ function restore_check(){
 function backup_check(){
   echo "backup checks running"
 
-  if ! which xtrabackup >> /dev/null 2>&1; then
-    echo "ERROR: Percona backup tool missing. Please install xtrabackup before running the script"
+  if ! which innobackupex >> /dev/null 2>&1; then
+    echo "ERROR: Percona backup tool missing. Please install innobackupex before running the script"
     exit 1
   fi
 
@@ -129,11 +131,18 @@ function backup_check(){
 
 # configure necessary files and directories for a backup
 function configure_backup(){
-  if [ ! -d /data/backups/mysql/ ]; then
-    echo "creating a backup directory at /data/backups/mysql/"
-    mkdir -p /data/backups/mysql/
+  if [ ! -d "$DIRECTORY"/ ]; then
+    echo "creating a backup directory at $DIRECTORY"
+    mkdir -p "$DIRECTORY"
   fi
-
+  if [ -z "$USER" ]; then
+    echo "ERROR: user not passed to the script"
+    exit 1
+  fi
+  if [ -z "$PASSWD" ]; then
+    echo "ERROR: password not passed to the script"
+    exit 1
+  fi
 }
 
 function argument_log(){
@@ -154,7 +163,7 @@ function help(){
   echo "  -p|--mysql-password                       specify the password of the user"
   echo "  -b|--s3bucket                             specify the address of s3 bucket"
   echo "  -d|--s3bucket-connection_details          specify the path to details file for your s3 bucket"
-  echo "  -t|--target-dir                           specify the taget directory to stroe the backup file"
+  echo "  -t|--target-dir                           specify the taget directory to stroe the backup file.   /data/backups/mysql/ by default"
   echo
 }
 ###################################################################################################

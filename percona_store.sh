@@ -62,14 +62,19 @@ function handle_args(){
         PASSWD=$2
         shift 2
         ;;
-      -n|--name)
+     -n|--name)
         NAME=$2
         argument_log "name"
         shift 2
         ;;
-      -b|--s3bucket)
+     -b|--s3bucket)
         BUCKET=$2
         argument_log "s3 bucket"
+        shift 2
+        ;;
+     -c|--aws-configs)
+        CONFIGS=$2
+        argument_log "aws configurations file"
         shift 2
         ;;
      -t|--target-dir)
@@ -115,6 +120,7 @@ function local_backup(){
 
 function aws_upload(){
     aws_check
+    aws configure import --csv "$CONFIGS"
     aws s3 cp "$DIRECTORY/$NAME.sql" s3://"$BUCKET"/
 }
 
@@ -169,7 +175,9 @@ function help(){
   echo "OPTIONS"
   echo "  -h|--help                                 display this help and exit"
   echo "  -u|--mysql-user                           specify the user of mysql server"
+  echo "  -b|--s3bucket                             specify the name of s3 bucket"
   echo "  -p|--mysql-password                       specify the password of the user"
+  echo "  -c|--aws-configs                          specify the csv file to be used for configuring aws access"
   echo "  -t|--target-dir                           specify the path to directory or file to stroe the backup.   /data/backups/mysql/ by default"
   echo
 }

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-DIRECTORY="/data/backups/mysql/"
+DIRECTORY="/tmp/data/backups/mysql/"
+NAME="db_backup"
 
 function main(){
   #check
@@ -52,11 +53,6 @@ function handle_args(){
         help
         exit
         ;;
-     -s|--mysql-server)        
-        SERVER=$2        
-        argument_log "server"
-        shift 2
-        ;;
      -u|--mysql-user)
         USER=$2
         argument_log "user"
@@ -66,14 +62,14 @@ function handle_args(){
         PASSWD=$2
         shift 2
         ;;
-     -b|--s3bucket)
-        BUCKET=$2
-        argument_log "s3 bucket"
+      -n|--name)
+        NAME=$2
+        argument_log "name"
         shift 2
         ;;
-     -d|--s3bucket-connection-details)
-        DETAILS=$2
-        argument_log "s3 bucket connection details"
+      -b|--s3bucket)
+        BUCKET=$2
+        argument_log "s3 bucket"
         shift 2
         ;;
      -t|--target-dir)
@@ -95,50 +91,56 @@ function handle_args(){
 function restore(){
   echo "*******************RESTORE SELECTED*******************"
   echo
-  restore_check
-  echo "restore process should have started here"
-  #systemctl stop mysql
-  #innobackupex --copy-back "$DIRECTORY"
+  #restore_check
+  echo "starting restoring process"
+  mysql -u "$USER" -p "My_DBs" < "$DIRECTORY"
+  echo "restoring process finsihed"
 
 }
 
 function backup(){
   echo "*******************BACKUP SELECTED*******************"
   echo
-  backup_check
-  echo "backup process should have started here"
-  configure_backup
-  #innobackupex --user="$USER"  --password="$PASSWD"  "$DIRECTORY"
+  echo "starting backup process"
+  local_backup
+  aws_upload
+  echo "backup process finsihed"
 }
 
+function local_backup(){
+  bckup_check
+  configure_backup
+  mysqldump -u "$USER" -p"$PASSWD" --all-databases > "$DIRECTORY/$NAME.sql"
+}
+
+function aws_upload(){
+    aws_check
+    aws s3 cp "$DIRECTORY/$NAME.sql" s3://"$BUCKET"/
+}
+
+#check that aws client is installed before trying to connect to s3 bucket
+function aws_check(){
+  echo "checking for aws client"
+
+  if ! which aws >> /dev/null 2>&1; then
+    echo "ERROR: AWS client missing. Please install aws client before running the script"
+    exit 1
+  fi
+}
 # check that everything necessary to restore is ready
 function restore_check(){
   echo "restore checks running"
 
-  if ! which rsync >> /dev/null 2>&1; then
-    echo "ERROR: Percona backup tool missing. Please install rsync before running the script"
-    exit 1
-  fi
-
   echo "restore checks over"
 }
+
 
 # check that everything necessary to backup is ready
 function backup_check(){
   echo "backup checks running"
 
-  if ! which xtrabackup >> /dev/null 2>&1; then
-    echo "ERROR: Percona backup tool missing. Please install xtrabackup before running the script"
-    exit 1
-  fi
-
   if [ -z "$USER" ]; then
     echo "ERROR: user not passed to the script"
-    exit 1
-  fi
-
-  if [ -z "$PASSWD" ]; then
-    echo "ERROR: password not passed to the script"
     exit 1
   fi
 
@@ -166,12 +168,9 @@ function help(){
   echo "percona_store is a script for making backups to AWS s3 bucket and restoring percona databases"
   echo "OPTIONS"
   echo "  -h|--help                                 display this help and exit"
-  echo "  -s|--mysql-server                         specify the URL of mysql server"
   echo "  -u|--mysql-user                           specify the user of mysql server"
   echo "  -p|--mysql-password                       specify the password of the user"
-  echo "  -b|--s3bucket                             specify the address of s3 bucket"
-  echo "  -d|--s3bucket-connection_details          specify the path to details file for your s3 bucket"
-  echo "  -t|--target-dir                           specify the taget directory to stroe the backup file.   /data/backups/mysql/ by default"
+  echo "  -t|--target-dir                           specify the path to directory or file to stroe the backup.   /data/backups/mysql/ by default"
   echo
 }
 ###################################################################################################

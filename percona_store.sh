@@ -1,10 +1,10 @@
 #!/bin/bash
 
 DIRECTORY="/tmp/data/backups/mysql/"
-NAME="db_backup"
+DATE=$(date +"%d-%m-%Y-%H:%M")
 
 function main(){
-  #check
+  mysql_check
   handle_args "$@"
   select_action
   exit 0
@@ -37,7 +37,7 @@ function select_action(){
 }
 
 # Check that mysql is installed 
-function check(){
+function mysql_check(){
   if ! which mysql; then
     echo "ERROR: MySQL missing. Please install MySQL before running this command"
     exit 1
@@ -56,10 +56,6 @@ function handle_args(){
      -u|--mysql-user)
         USER=$2
         argument_log "user"
-        shift 2
-        ;;
-     -p|--mysql-password)
-        PASSWD=$2
         shift 2
         ;;
      -n|--name)
@@ -96,9 +92,10 @@ function handle_args(){
 function restore(){
   echo "*******************RESTORE SELECTED*******************"
   echo
-  #restore_check
+  restore_check
   echo "starting restoring process"
-  mysql -u "$USER" -p "My_DBs" < "$DIRECTORY"
+  aws_download
+  mysql -u "$USER" -p < "$DIRECTORY/$NAME"
   echo "restoring process finsihed"
 
 }
@@ -113,15 +110,20 @@ function backup(){
 }
 
 function local_backup(){
-  bckup_check
+  backup_check
   configure_backup
-  mysqldump -u "$USER" -p"$PASSWD" --all-databases > "$DIRECTORY/$NAME.sql"
+  mysqldump -u "$USER" --all-databases > "$DIRECTORY/$DATE-backup.sql"
 }
 
 function aws_upload(){
-    aws_check
-    aws configure import --csv "$CONFIGS"
-    aws s3 cp "$DIRECTORY/$NAME.sql" s3://"$BUCKET"/
+  aws_check
+  aws_config
+  aws s3 cp "$DIRECTORY/$DATE-backup.sql" s3://"$BUCKET"/
+}
+
+function aws_download(){
+  aws_check
+  aws s3 cp s3://"$BUCKET"/"$NAME" "$DIRECTORY"
 }
 
 #check that aws client is installed before trying to connect to s3 bucket
@@ -133,9 +135,21 @@ function aws_check(){
     exit 1
   fi
 }
+
+function aws_config(){
+  if [ -z "$CONFIGS" ]; then
+    aws configure import --csv "$CONFIGS"
+  fi
+}
+
 # check that everything necessary to restore is ready
 function restore_check(){
   echo "restore checks running"
+
+  if [ ! -d "$DIRECTORY"/ ]; then
+    echo "no file $DIRECTORY exists on local machine"
+    exit 1
+  fi
 
   echo "restore checks over"
 }
@@ -176,7 +190,6 @@ function help(){
   echo "  -h|--help                                 display this help and exit"
   echo "  -u|--mysql-user                           specify the user of mysql server"
   echo "  -b|--s3bucket                             specify the name of s3 bucket"
-  echo "  -p|--mysql-password                       specify the password of the user"
   echo "  -c|--aws-configs                          specify the csv file to be used for configuring aws access"
   echo "  -t|--target-dir                           specify the path to directory or file to stroe the backup.   /data/backups/mysql/ by default"
   echo

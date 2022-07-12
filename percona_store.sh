@@ -112,7 +112,7 @@ function backup(){
 function local_backup(){
   backup_check
   configure_backup
-  mysqldump -u "$USER" --all-databases > "$DIRECTORY/$DATE-backup.sql"
+  mysqldump -u "$USER" -p --all-databases > "$DIRECTORY/$DATE-backup.sql"
 }
 
 function aws_upload(){
